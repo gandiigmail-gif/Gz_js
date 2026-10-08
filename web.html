@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Schedule Tracker V3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =========================================
+           1. VARIABEL TEMA WARNA
+        ========================================= */
+        :root {
+            --bg-body: #f4f7f6; --bg-card: #ffffff;
+            --text-main: #333333; --text-muted: #888888;
+            --border: #e2e8f0; --primary: #4f46e5;
+            --primary-hover: #4338ca; --success: #10b981;
+            --danger: #ef4444; --holiday: #f59e0b;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --radius: 12px;
+        }
+
+        [data-theme="grey"] {
+            --bg-body: #e2e8f0; --bg-card: #f1f5f9;
+            --text-main: #334155; --text-muted: #94a3b8;
+            --border: #cbd5e1;
+        }
+
+        [data-theme="dark"] {
+            --bg-body: #0f172a; --bg-card: #1e293b;
+            --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border: #334155; --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        }
+
+        /* =========================================
+           2. DASAR & LAYOUT
+        ========================================= */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-body); color: var(--text-main); font-family: 'Poppins', sans-serif; transition: 0.3s; line-height: 1.6; }
+        .container { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid var(--border); }
+        .greeting h1 { font-size: 1.5rem; font-weight: 600; }
+        .greeting p { color: var(--text-muted); font-size: 0.9rem; }
+        
+        select { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); font-family: 'Poppins', sans-serif; cursor: pointer; outline: none; }
+
+        .grid-layout { display: grid; grid-template-columns: 320px 1fr; gap: 25px; }
+        @media (max-width: 768px) { .grid-layout { grid-template-columns: 1fr; } }
+        
+        .card { background: var(--bg-card); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+
+        /* =========================================
+           3. KALENDER INTERAKTIF
+        ========================================= */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; font-weight: 600; margin-bottom: 15px; color: var(--primary); }
+        .calendar-header button { background: transparent; border: none; color: var(--text-main); font-size: 1.2rem; cursor: pointer; padding: 0 10px; font-weight: bold; }
+        .calendar-header button:hover { color: var(--primary); }
+        
+        .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .day-name { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; }
+        
+        .day-num { font-size: 0.9rem; padding: 8px 0; border-radius: 6px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+        .day-num:hover:not(:empty) { background: var(--border); }
+        .day-num.today { border: 2px solid var(--primary); font-weight: 600; }
+        .day-num.selected { background: var(--primary); color: #fff; font-weight: 600; box-shadow: 0 2px 4px rgba(79,70,229,0.3); }
+
+        /* Hari Minggu berwarna merah pada angka */
+        .day-name.sunday { color: var(--danger); }
+        .day-num.sunday { color: var(--danger); font-weight: 500; }
+        .day-num.sunday.selected { color: #fff; background: var(--danger); border-color: var(--danger); box-shadow: 0 2px 4px rgba(239,68,68,0.3); }
+
+        /* =========================================
+           4. JADWAL & FORM
+        ========================================= */
+        .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .schedule-header h2 { font-size: 1.25rem; }
+        .schedule-date-label { font-size: 0.9rem; color: var(--text-muted); display: block; margin-top: -5px; margin-bottom: 15px; }
+
+        button { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-weight: 500; cursor: pointer; transition: 0.2s; }
+        button:hover { filter: brightness(1.1); }
+        button.btn-danger { background: var(--danger); }
+        button.btn-holiday { background: var(--holiday); color: #000; font-weight: 600; }
+        button.btn-small { padding: 4px 12px; font-size: 0.8rem; border-radius: 6px; }
+
+        /* Form Tambah */
+        .form-box { display: none; background: var(--bg-body); padding: 15px; border-radius: var(--radius); margin-bottom: 20px; border: 1px solid var(--border); }
+        .form-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        .form-time-row { display: flex; align-items: center; gap: 10px; }
+        input { padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); font-family: 'Poppins', sans-serif; outline: none; }
+        input:focus { border-color: var(--primary); }
+        input[type="time"] { flex: 1; }
+        input[type="text"] { width: 100%; }
+        .form-actions { display: flex; justify-content: space-between; align-items: center; }
+
+        /* =========================================
+           5. UI AKTIVITAS BARU (KIRI ATAS & KANAN ATAS)
+        ========================================= */
+        .list-container { max-height: 480px; overflow-y: auto; padding-right: 5px; }
+        .list-container::-webkit-scrollbar { width: 6px; }
+        .list-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+        .activity-item {
+            display: flex; flex-direction: column; padding: 15px; margin-bottom: 12px;
+            background: var(--bg-body); border-radius: 10px; border: 1px solid var(--border);
+            transition: transform 0.2s, border-color 0.2s; position: relative;
+        }
+        .activity-item:hover { transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
+        .activity-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        
+        /* Pojok Kiri Atas */
+        .time-badge { background: var(--primary); color: white; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.5px; }
+        
+        /* Bawah (Keterangan) */
+        .task-text { font-weight: 500; font-size: 1rem; color: var(--text-main); transition: 0.3s; }
+        
+        /* STATE SELESAI */
+        .task-text.completed { text-decoration: line-through; color: var(--text-muted); }
+        .time-badge.completed { background: var(--text-muted); }
+        
+        .btn-approve { background: var(--border); color: var(--text-main); }
+        .btn-approve.approved {
+            background: var(--success); color: white; border: none;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; pointer-events: none;
+        }
+        
+        @keyframes popIn { 0% { transform: scale(0.9); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+        .empty-state { text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 20px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="greeting">
+            <h1 id="greetingText">Halo! 👋</h1>
+            <p>Atur jadwal masa depanmu dengan cerdas.</p>
+        </div>
+        <div>
+            <select id="themeSelector" onchange="changeTheme()">
+                <option value="white">⚪ White</option>
+                <option value="grey">🔘 Grey</option>
+                <option value="dark">🌙 Dark</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="grid-layout">
+        <!-- KIRI: KALENDER -->
+        <aside class="card">
+            <div class="calendar-header">
+                <button onclick="changeMonth(-1)">&#10094;</button>
+                <span id="monthYearText">Bulan Tahun</span>
+                <button onclick="changeMonth(1)">&#10095;</button>
+            </div>
+            <div class="days-grid" id="calendarDays"></div>
+        </aside>
+
+        <!-- KANAN: JADWAL -->
+        <main class="card">
+            <div class="schedule-header">
+                <h2>Jadwal Kegiatan 📝</h2>
+                <button onclick="showForm()">+ Tambah</button>
+            </div>
+            <div class="schedule-date-label" id="selectedDateLabel">Menampilkan jadwal untuk: Hari Ini</div>
+
+            <!-- Form Tambah -->
+            <div class="form-box" id="activityForm">
+                <div class="form-group">
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Atur Waktu:</label>
+                    <div class="form-time-row">
+                        <input type="time" id="inputTimeStart" required>
+                        <span style="font-weight:600; color:var(--text-muted);">s/d</span>
+                        <input type="time" id="inputTimeEnd" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="inputTask" placeholder="Aktivitas (Tulis / Klik Saran di bawah)..." required>
+                </div>
+                <div class="form-actions">
+                    <div>
+                        <button onclick="saveActivity()">Simpan</button>
+                        <button class="btn-danger" onclick="hideForm()">Batal</button>
+                    </div>
+                    <button class="btn-holiday" onclick="suggestTaskByTime()">💡 Saran (Max 2)</button>
+                </div>
+            </div>
+
+            <!-- List Jadwal -->
+            <div class="list-container" id="activityList"></div>
+        </main>
+    </div>
+</div>
+
+<script>
+    /* =========================================
+       1. LOGIKA WAKTU & DATA LOKAL
+    ========================================= */
+    function formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    let today = new Date();
+    let currentCalDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    let activeDateStr = formatDate(today);
+    let allSchedules = JSON.parse(localStorage.getItem('smartScheduleV3')) || {};
+
+    // FUNGSI TEMPLATE OTOMATIS (Bangun - Tidur)
+    function getTemplateForDate(dateStr) {
+        const d = new Date(dateStr);
+        const isSunday = d.getDay() === 0; // 0 = Minggu
+
+        if (isSunday) {
+            // TEMPLATE HARI MINGGU FULL
+            return [
+                { id: Math.random(), timeStart: "05:00", timeEnd: "05:30", task: "Bangun, Ibadah & Minum Air Putih", isDone: false },
+                { id: Math.random(), timeStart: "05:30", timeEnd: "07:30", task: "Lari Pagi / Olahraga Santai", isDone: false },
+                { id: Math.random(), timeStart: "07:30", timeEnd: "08:30", task: "Mandi Pagi & Sarapan", isDone: false },
+                { id: Math.random(), timeStart: "08:30", timeEnd: "12:00", task: "Beres-beres Kamar / Nonton Film", isDone: false },
+                { id: Math.random(), timeStart: "12:00", timeEnd: "13:00", task: "Istirahat, Ibadah & Makan Siang", isDone: false },
+                { id: Math.random(), timeStart: "13:00", timeEnd: "15:30", task: "Tidur Siang / Mabar Bareng Temen", isDone: false },
+                { id: Math.random(), timeStart: "15:30", timeEnd: "18:00", task: "Nongkrong Santai / Jalan Sore", isDone: false },
+                { id: Math.random(), timeStart: "18:00", timeEnd: "20:00", task: "Mandi, Ibadah & Makan Malam", isDone: false },
+                { id: Math.random(), timeStart: "20:00", timeEnd: "22:00", task: "Me-Time / Siap-siap Perlengkapan PKL", isDone: false },
+                { id: Math.random(), timeStart: "22:00", timeEnd: "05:00", task: "Tidur Malam (Recharge Energi)", isDone: false }
+            ];
+        } else {
+            // TEMPLATE HARI BIASA (PKL)
+            return [
+                { id: Math.random(), timeStart: "04:30", timeEnd: "05:00", task: "Bangun & Ibadah Subuh", isDone: false },
+                { id: Math.random(), timeStart: "05:00", timeEnd: "06:30", task: "Olahraga Tipis & Mandi", isDone: false },
+                { id: Math.random(), timeStart: "06:30", timeEnd: "07:30", task: "Sarapan & Persiapan Berangkat", isDone: false },
+                { id: Math.random(), timeStart: "08:00", timeEnd: "12:00", task: "Fokus PKL (Sesi Pagi)", isDone: false },
+                { id: Math.random(), timeStart: "12:00", timeEnd: "13:00", task: "Istirahat, Ibadah & Makan Siang", isDone: false },
+                { id: Math.random(), timeStart: "13:00", timeEnd: "17:00", task: "Lanjut PKL (Sesi Siang)", isDone: false },
+                { id: Math.random(), timeStart: "17:00", timeEnd: "18:30", task: "Pulang, Mandi & Istirahat", isDone: false },
+                { id: Math.random(), timeStart: "18:30", timeEnd: "20:00", task: "Makan Malam & Ibadah", isDone: false },
+                { id: Math.random(), timeStart: "20:00", timeEnd: "22:00", task: "Santai / Belajar Hal Baru", isDone: false },
+                { id: Math.random(), timeStart: "22:00", timeEnd: "04:30", task: "Tidur Malam", isDone: false }
+            ];
+        }
+    }
+
+    /* =========================================
+       2. UI SETUP (TEMA & SAPAAN)
+    ========================================= */
+    function initTheme() {
+        const savedTheme = localStorage.getItem('myTheme') || 'white';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeSelector').value = savedTheme;
+    }
+    function changeTheme() {
+        const theme = document.getElementById('themeSelector').value;
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('myTheme', theme);
+    }
+    function setGreeting() {
+        const h = new Date().getHours();
+        let txt = "Selamat Malam! 🌙";
+        if (h >= 4 && h < 11) txt = "Selamat Pagi! 🌅";
+        else if (h >= 11 && h < 15) txt = "Selamat Siang! ☀️";
+        else if (h >= 15 && h < 18) txt = "Selamat Sore! 🌇";
+        document.getElementById('greetingText').innerText = txt;
+    }
+
+    /* =========================================
+       3. KALENDER INTERAKTIF
+    ========================================= */
+    function renderCalendar() {
+        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        document.getElementById("monthYearText").innerText = `${monthNames[currentCalDate.getMonth()]} ${currentCalDate.getFullYear()}`;
+
+        const calendarDays = document.getElementById("calendarDays");
+        const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+        
+        // Header Hari (Minggu dikasih warna merah via class sunday)
+        calendarDays.innerHTML = days.map((d, index) => `<div class="day-name ${index === 0 ? 'sunday' : ''}">${d}</div>`).join('');
+
+        const daysInMonth = new Date(currentCalDate.getFullYear(), currentCalDate.getMonth() + 1, 0).getDate();
+        const firstDay = new Date(currentCalDate.getFullYear(), currentCalDate.getMonth(), 1).getDay();
+
+        for (let i = 0; i < firstDay; i++) { calendarDays.innerHTML += `<div></div>`; }
+
+        for (let i = 1; i <= daysInMonth; i++) {
+            const cellDate = new Date(currentCalDate.getFullYear(), currentCalDate.getMonth(), i);
+            const cellDateStr = formatDate(cellDate);
+            const isSunday = cellDate.getDay() === 0;
+
+            let classList = "day-num";
+            if (isSunday) classList += " sunday";
+            if (cellDateStr === formatDate(today)) classList += " today";
+            if (cellDateStr === activeDateStr) classList += " selected";
+
+            calendarDays.innerHTML += `<div class="${classList}" onclick="selectDate('${cellDateStr}')">${i}</div>`;
+        }
+    }
+
+    function changeMonth(step) {
+        currentCalDate.setMonth(currentCalDate.getMonth() + step);
+        renderCalendar();
+    }
+
+    function selectDate(dateStr) {
+        activeDateStr = dateStr;
+        
+        // JIKA TANGGAL TERSEBUT KOSONG, INJEKSI TEMPLATE
+        if (!allSchedules[activeDateStr] || allSchedules[activeDateStr].length === 0) {
+            allSchedules[activeDateStr] = getTemplateForDate(activeDateStr);
+            saveData();
+        }
+
+        renderCalendar();
+        updateDateLabel();
+        renderActivities();
+    }
+
+    function updateDateLabel() {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        let label = new Date(activeDateStr).toLocaleDateString('id-ID', options);
+        if (activeDateStr === formatDate(today)) label += " (Hari Ini)";
+        document.getElementById("selectedDateLabel").innerText = "Menampilkan jadwal untuk: " + label;
+    }
+
+    /* =========================================
+       4. JADWAL (RENDER, FORM, SARAN)
+    ========================================= */
+    function renderActivities() {
+        const listContainer = document.getElementById('activityList');
+        listContainer.innerHTML = '';
+        
+        let dailyActivities = allSchedules[activeDateStr] || [];
+        if (dailyActivities.length === 0) {
+            listContainer.innerHTML = '<div class="empty-state">Belum ada aktivitas. Yuk isi!</div>';
+            return;
+        }
+
+        // Urutkan berdasarkan jam mulai (timeStart)
+        dailyActivities.sort((a, b) => a.timeStart.localeCompare(b.timeStart));
+
+        dailyActivities.forEach(item => {
+            const doneClass = item.isDone ? 'completed' : '';
+            const btnClass = item.isDone ? 'btn-approve approved' : 'btn-approve';
+            const btnText = item.isDone ? '✅ Approved' : 'Selesai';
+
+            // FORMAT UI: Jam Kiri Atas, Selesai Kanan Atas, Deskripsi di bawah
+            listContainer.innerHTML += `
+                <div class="activity-item">
+                    <div class="activity-header">
+                        <div class="time-badge ${doneClass}">${item.timeStart} - ${item.timeEnd}</div>
+                        <button class="btn-small ${btnClass}" onclick="markAsDone(${item.id})">${btnText}</button>
+                    </div>
+                    <div class="task-text ${doneClass}">${item.task}</div>
+                </div>
+            `;
+        });
+    }
+
+    function showForm() {
+        document.getElementById('activityForm').style.display = 'block';
+        document.getElementById('inputTimeStart').value = '';
+        document.getElementById('inputTimeEnd').value = '';
+        document.getElementById('inputTask').value = '';
+        document.getElementById('inputTimeStart').focus();
+    }
+    function hideForm() { document.getElementById('activityForm').style.display = 'none'; }
+
+    // SARAN KEGIATAN MAKSIMAL 2 PILIHAN
+    function suggestTaskByTime() {
+        const timeInput = document.getElementById('inputTimeStart').value;
+        if (!timeInput) return alert("Pilih 'Jam Mulai' nya dulu ya biar sistem tahu sarannya!");
+
+        const hour = parseInt(timeInput.split(":")[0]);
+        let suggestion = "";
+
+        if (hour >= 4 && hour <= 7) suggestion = "Olahraga Pagi / Sarapan Santai";
+        else if (hour >= 8 && hour <= 11) suggestion = "Belajar Santai / Beres-beres Kamar";
+        else if (hour >= 12 && hour <= 14) suggestion = "Tidur Siang / Mabar Game";
+        else if (hour >= 15 && hour <= 17) suggestion = "Jalan Sore / Nyemil Santai";
+        else if (hour >= 18 && hour <= 21) suggestion = "Nonton Film / Waktu Me-Time";
+        else suggestion = "Tidur Nyenyak / Dengerin Podcast"; // Jam 22 malam ke atas
+
+        document.getElementById('inputTask').value = "💡 " + suggestion;
+    }
+
+    function saveActivity() {
+        const timeStart = document.getElementById('inputTimeStart').value;
+        const timeEnd = document.getElementById('inputTimeEnd').value;
+        const task = document.getElementById('inputTask').value;
+
+        if (!timeStart || !timeEnd || !task) return alert("Jam dan Aktivitas harus diisi lengkap!");
+
+        if (!allSchedules[activeDateStr]) allSchedules[activeDateStr] = [];
+        
+        allSchedules[activeDateStr].push({ id: Date.now(), timeStart, timeEnd, task, isDone: false });
+        saveData(); renderActivities(); hideForm();
+    }
+
+    function markAsDone(id) {
+        let daily = allSchedules[activeDateStr];
+        const idx = daily.findIndex(a => a.id === id);
+        if (idx !== -1) {
+            daily[idx].isDone = true;
+            saveData(); renderActivities();
+        }
+    }
+
+    function saveData() { localStorage.setItem('smartScheduleV3', JSON.stringify(allSchedules)); }
+
+    /* =========================================
+       5. JALANKAN SAAT DIBUKA
+    ========================================= */
+    initTheme();
+    setGreeting();
+    
+    // Pastikan Hari Ini Punya Template jika belum pernah dibuka
+    if (!allSchedules[activeDateStr]) {
+        allSchedules[activeDateStr] = getTemplateForDate(activeDateStr);
+        saveData();
+    }
+
+    renderCalendar();
+    updateDateLabel();
+    renderActivities();
+
+</script>
+
+</body>
+</html>
